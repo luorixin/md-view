@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "release/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -33,6 +34,7 @@ jobs:
           script: |
             const fs = require("node:fs");
             const branch = context.ref.replace("refs/heads/", "");
+            const versionFilePath = ".release/release.json";
             const existing = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -51,14 +53,31 @@ jobs:
               "utf8",
             );
 
-            const releaseName = branch.replace(/^release\//, "");
+            let releaseVersion = branch.replace(/^release\//, "");
+            if (fs.existsSync(versionFilePath)) {
+              const releaseInfo = JSON.parse(fs.readFileSync(versionFilePath, "utf8"));
+              if (releaseInfo.version) {
+                releaseVersion = releaseInfo.version;
+              }
+            }
+
+            const body = [
+              "## Release Metadata",
+              "",
+              `- Version: \`${releaseVersion}\``,
+              `- Branch: \`${branch}\``,
+              `- Source commit: \`${context.sha}\``,
+              "",
+              template,
+            ].join("\n");
+
             const response = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               head: branch,
               base: "main",
-              title: `Release: ${releaseName}`,
-              body: template,
+              title: `Release ${releaseVersion}`,
+              body,
               draft: true,
             });
 
