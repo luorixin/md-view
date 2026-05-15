@@ -4,15 +4,16 @@ FROM node:24-alpine AS base
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PNPM_HOME=/pnpm
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ENV PATH=$PNPM_HOME:$PATH
 
 WORKDIR /app
 
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
 
 FROM base AS deps
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
