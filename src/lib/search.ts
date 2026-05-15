@@ -13,6 +13,21 @@ export type SearchResult = SearchIndexItem & {
 
 const SNIPPET_RADIUS = 64;
 
+export function getSearchPageHref(options: SearchOptions): string {
+  const params: string[] = [];
+  const query = options.query.trim();
+
+  if (query) {
+    params.push(`q=${encodeURIComponent(query)}`);
+  }
+
+  if (options.module !== "all") {
+    params.push(`module=${encodeURIComponent(options.module)}`);
+  }
+
+  return params.length > 0 ? `/search?${params.join("&")}` : "/search";
+}
+
 export function searchDocs(
   index: SearchIndexItem[],
   options: SearchOptions,

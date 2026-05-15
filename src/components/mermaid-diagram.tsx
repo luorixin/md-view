@@ -6,6 +6,10 @@ type MermaidDiagramProps = {
   chart: string;
 };
 
+let mermaidLoader:
+  | Promise<typeof import("mermaid").default>
+  | null = null;
+
 export function MermaidDiagram({ chart }: MermaidDiagramProps) {
   const reactId = useId();
   const [svg, setSvg] = useState("");
@@ -16,25 +20,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
 
     async function renderDiagram() {
       try {
-        const mermaid = (await import("mermaid")).default;
-        mermaid.initialize({
-          securityLevel: "loose",
-          startOnLoad: false,
-          theme: "base",
-          themeVariables: {
-            primaryColor: "#fffdf8",
-            primaryTextColor: "#20221f",
-            primaryBorderColor: "#1f7a68",
-            lineColor: "#62665f",
-            secondaryColor: "#f0eee7",
-            tertiaryColor: "#f7f4ee",
-            actorBorder: "#1f7a68",
-            actorTextColor: "#20221f",
-            actorBkg: "#fffdf8",
-            signalColor: "#62665f",
-            signalTextColor: "#20221f",
-          },
-        });
+        const mermaid = await getMermaid();
 
         const diagramId = `mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
         const result = await mermaid.render(diagramId, chart);
@@ -81,4 +67,33 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
       )}
     </figure>
   );
+}
+
+async function getMermaid() {
+  if (!mermaidLoader) {
+    mermaidLoader = import("mermaid").then(({ default: mermaid }) => {
+      mermaid.initialize({
+        securityLevel: "loose",
+        startOnLoad: false,
+        theme: "base",
+        themeVariables: {
+          primaryColor: "#fffdf8",
+          primaryTextColor: "#20221f",
+          primaryBorderColor: "#1f7a68",
+          lineColor: "#62665f",
+          secondaryColor: "#f0eee7",
+          tertiaryColor: "#f7f4ee",
+          actorBorder: "#1f7a68",
+          actorTextColor: "#20221f",
+          actorBkg: "#fffdf8",
+          signalColor: "#62665f",
+          signalTextColor: "#20221f",
+        },
+      });
+
+      return mermaid;
+    });
+  }
+
+  return mermaidLoader;
 }

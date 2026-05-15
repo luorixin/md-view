@@ -135,6 +135,15 @@ a {
   text-decoration: none;
 }
 
+.search-open:focus-visible,
+.search-result:focus-visible,
+.nav-module a:focus-visible,
+.mobile-menu summary:focus-visible,
+.code-block-toolbar button:focus-visible {
+  outline: 2px solid rgb(31 122 104 / 22%);
+  outline-offset: 2px;
+}
+
 .search-results {
   display: grid;
   max-height: 390px;
@@ -305,6 +314,21 @@ mark {
   font-size: 1.24rem;
 }
 
+.heading-anchor {
+  margin-right: 10px;
+  color: var(--accent);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.markdown-body h2:hover .heading-anchor,
+.markdown-body h2:focus-within .heading-anchor,
+.markdown-body h3:hover .heading-anchor,
+.markdown-body h3:focus-within .heading-anchor {
+  opacity: 1;
+}
+
 .markdown-body p,
 .markdown-body ul,
 .markdown-body ol,
@@ -339,6 +363,42 @@ mark {
   overflow-wrap: normal;
 }
 
+.code-block {
+  margin: 0 0 18px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.code-block-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #101917;
+  padding: 10px 14px;
+  color: var(--code-text);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.code-block-toolbar button {
+  border: 1px solid rgb(236 244 239 / 18%);
+  border-radius: 999px;
+  background: transparent;
+  padding: 6px 10px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.code-block pre {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .mermaid-diagram {
   margin: 24px 0;
   overflow-x: auto;
@@ -350,7 +410,8 @@ mark {
 }
 
 .mermaid-diagram > div {
-  min-width: 620px;
+  display: inline-block;
+  min-width: min(100%, 620px);
 }
 
 .mermaid-diagram svg {
@@ -456,6 +517,11 @@ mark {
 
 .toc a:hover {
   color: var(--accent-strong);
+}
+
+.toc a.current {
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 
 .toc .nested {

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getAdjacentDocs,
   getAllDocParams,
+  getDocPageData,
   getDocModules,
 } from "../src/lib/docs";
 
@@ -73,4 +74,19 @@ test("returns empty adjacent slots for missing or edge documents", () => {
   assert.equal(lastAdjacent.previous?.slug, reactModule.docs.at(-2)?.slug);
   assert.equal(lastAdjacent.next, null);
   assert.deepEqual(missingAdjacent, { previous: null, next: null });
+});
+
+test("builds all document page data in one read model", () => {
+  const reactModule = getDocModules().find((module) => module.slug === "react");
+  assert.ok(reactModule);
+
+  const doc = reactModule.docs[1];
+  const pageData = getDocPageData("react", doc.slug);
+
+  assert.ok(pageData);
+  assert.equal(pageData.activeModule.slug, "react");
+  assert.equal(pageData.doc.slug, doc.slug);
+  assert.equal(pageData.modules.length, 2);
+  assert.equal(pageData.searchIndex.length, 51);
+  assert.equal(pageData.adjacentDocs.previous?.slug, reactModule.docs[0].slug);
 });
