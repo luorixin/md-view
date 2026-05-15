@@ -1,0 +1,11 @@
+.DS_Store
+.git
+.next
+.omx
+Dockerfile
+README.md
+docker-compose*.yml
+node_modules
+npm-debug.log*
+pnpm-debug.log*
+*.log

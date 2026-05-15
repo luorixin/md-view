@@ -1,0 +1,14 @@
+services:
+  md-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: md-server:latest
+    container_name: md-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "3000:3000"
