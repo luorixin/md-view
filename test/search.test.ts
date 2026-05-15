@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { getSearchIndex } from "../src/lib/docs";
-import { searchDocs } from "../src/lib/search";
+import { getSearchPageHref, normalizeQuery, searchDocs } from "../src/lib/search";
 
 test("builds a full-text search index from every markdown document", () => {
   const index = getSearchIndex();
@@ -46,4 +46,16 @@ test("supports multi-term searches", () => {
   assert.equal(results.length > 0, true);
   assert.equal(results[0].matches.includes("react"), true);
   assert.equal(results[0].matches.includes("fiber"), true);
+});
+
+test("normalizes repeated and padded search terms", () => {
+  assert.deepEqual(normalizeQuery("  React   react   Fiber "), ["react", "fiber"]);
+});
+
+test("builds shareable search result urls", () => {
+  assert.equal(
+    getSearchPageHref({ query: "react fiber", module: "react" }),
+    "/search?q=react%20fiber&module=react",
+  );
+  assert.equal(getSearchPageHref({ query: "hydration", module: "all" }), "/search?q=hydration");
 });

@@ -14,6 +14,7 @@ import remarkGfm from "remark-gfm";
 import { createHeadingSlugger } from "@/lib/docs";
 import { getCodeLanguage, isMermaidLanguage } from "@/lib/markdown-code";
 
+import { CodeBlock } from "./code-block";
 import { MermaidDiagram } from "./mermaid-diagram";
 
 type MarkdownContentProps = {
@@ -46,16 +47,42 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
           h2({ children }) {
             const id = headingSlug(childrenToText(children));
 
-            return <h2 id={id}>{children}</h2>;
+            return (
+              <h2 id={id}>
+                <a
+                  aria-label={`跳转到 ${childrenToText(children)}`}
+                  className="heading-anchor"
+                  href={`#${id}`}
+                >
+                  #
+                </a>
+                {children}
+              </h2>
+            );
           },
           h3({ children }) {
             const id = headingSlug(childrenToText(children));
 
-            return <h3 id={id}>{children}</h3>;
+            return (
+              <h3 id={id}>
+                <a
+                  aria-label={`跳转到 ${childrenToText(children)}`}
+                  className="heading-anchor"
+                  href={`#${id}`}
+                >
+                  #
+                </a>
+                {children}
+              </h3>
+            );
           },
           a({ children, href }) {
             return (
-              <a href={href} rel="noreferrer" target={isExternalHref(href) ? "_blank" : undefined}>
+              <a
+                href={href}
+                rel="noreferrer"
+                target={isExternalHref(href) ? "_blank" : undefined}
+              >
                 {children}
               </a>
             );
@@ -67,12 +94,15 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
               </div>
             );
           },
-          code({ children, className }) {
-            const code = childrenToText(children);
-            const language = getCodeLanguage(className);
+          pre({ children }) {
+            const codeElement = getCodeElement(children);
+            const language = getCodeLanguage(codeElement?.props.className);
+            const code = codeElement
+              ? childrenToText(codeElement.props.children)
+              : "";
 
             if (!language) {
-              return <code>{children}</code>;
+              return <pre>{children}</pre>;
             }
 
             if (isMermaidLanguage(language)) {
@@ -80,13 +110,15 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
             }
 
             return (
-              <code
-                className={`hljs language-${language}`}
-                dangerouslySetInnerHTML={{
-                  __html: highlightCode(code, language),
-                }}
+              <CodeBlock
+                code={code}
+                highlightedHtml={highlightCode(code, language)}
+                language={language}
               />
             );
+          },
+          code({ children, className }) {
+            return <code className={className}>{children}</code>;
           },
         }}
       >
@@ -124,6 +156,18 @@ function isReactElementWithChildren(
   value: ReactNode,
 ): value is ReactElement<{ children?: ReactNode }> {
   return typeof value === "object" && value !== null && "props" in value;
+}
+
+function getCodeElement(
+  children: ReactNode,
+): ReactElement<{ children?: ReactNode; className?: string }> | null {
+  const child = Children.toArray(children)[0];
+
+  if (!isReactElementWithChildren(child)) {
+    return null;
+  }
+
+  return child;
 }
 
 function isExternalHref(href: string | undefined): boolean {

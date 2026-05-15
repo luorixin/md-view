@@ -5,12 +5,9 @@ import { AdjacentDocNav } from "@/components/adjacent-doc-nav";
 import { DocShell } from "@/components/doc-shell";
 import { MarkdownContent } from "@/components/markdown-content";
 import {
-  getAdjacentDocs,
   getAllDocParams,
   getDocBySlug,
-  getDocModules,
-  getModuleBySlug,
-  getSearchIndex,
+  getDocPageData,
   stripFirstHeading,
 } from "@/lib/docs";
 
@@ -42,10 +39,9 @@ export async function generateMetadata({
 
 export default async function DocPage({ params }: DocPageProps) {
   const { module, slug } = await params;
-  const doc = getDocBySlug(module, slug);
-  const activeModule = getModuleBySlug(module);
+  const pageData = getDocPageData(module, slug);
 
-  if (!doc || !activeModule) {
+  if (!pageData) {
     notFound();
   }
 
@@ -53,17 +49,17 @@ export default async function DocPage({ params }: DocPageProps) {
     <DocShell
       activeModule={module}
       activeSlug={slug}
-      modules={getDocModules()}
-      searchIndex={getSearchIndex()}
-      tableOfContents={doc.tableOfContents}
+      modules={pageData.modules}
+      searchIndex={pageData.searchIndex}
+      tableOfContents={pageData.doc.tableOfContents}
     >
       <article className="doc-article">
         <header className="doc-header">
-          <p>{activeModule.title}</p>
-          <h1>{doc.title}</h1>
+          <p>{pageData.activeModule.title}</p>
+          <h1>{pageData.doc.title}</h1>
         </header>
-        <MarkdownContent content={stripFirstHeading(doc.content)} />
-        <AdjacentDocNav adjacentDocs={getAdjacentDocs(module, slug)} />
+        <MarkdownContent content={stripFirstHeading(pageData.doc.content)} />
+        <AdjacentDocNav adjacentDocs={pageData.adjacentDocs} />
       </article>
     </DocShell>
   );

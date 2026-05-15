@@ -35,6 +35,14 @@ export type AdjacentDocs = {
   next: DocSummary | null;
 };
 
+export type DocPageData = {
+  activeModule: DocModule;
+  adjacentDocs: AdjacentDocs;
+  doc: DocDetail;
+  modules: DocModule[];
+  searchIndex: SearchIndexItem[];
+};
+
 const DOCS_DIR = path.join(process.cwd(), "docs");
 
 const moduleTitleMap: Record<string, string> = {
@@ -42,26 +50,21 @@ const moduleTitleMap: Record<string, string> = {
   vue: "Vue",
 };
 
-export function getDocModules(): DocModule[] {
-  if (!fs.existsSync(DOCS_DIR)) {
-    return [];
-  }
+type DocsStore = {
+  details: Map<string, DocDetail>;
+  modules: DocModule[];
+  params: Array<{ module: string; slug: string }>;
+  searchIndex: SearchIndexItem[];
+};
 
-  return fs
-    .readdirSync(DOCS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => buildModule(entry.name))
-    .filter((module) => module.docs.length > 0)
-    .sort((a, b) => a.slug.localeCompare(b.slug));
+let docsStore: DocsStore | null = null;
+
+export function getDocModules(): DocModule[] {
+  return getDocsStore().modules;
 }
 
 export function getAllDocParams(): Array<{ module: string; slug: string }> {
-  return getDocModules().flatMap((module) =>
-    module.docs.map((doc) => ({
-      module: module.slug,
-      slug: doc.slug,
-    })),
-  );
+  return getDocsStore().params;
 }
 
 export function getFirstDoc(): DocSummary | null {
@@ -72,22 +75,7 @@ export function getDocBySlug(
   moduleSlug: string,
   docSlug: string,
 ): DocDetail | null {
-  const filePath = path.join(DOCS_DIR, moduleSlug, `${docSlug}.md`);
-
-  if (!isPathInsideDocs(filePath) || !fs.existsSync(filePath)) {
-    return null;
-  }
-
-  const content = fs.readFileSync(filePath, "utf8");
-
-  return {
-    module: moduleSlug,
-    slug: docSlug,
-    title: extractTitle(content, docSlug),
-    href: `/${moduleSlug}/${docSlug}`,
-    content,
-    tableOfContents: extractTableOfContents(content),
-  };
+  return getDocsStore().details.get(createDocKey(moduleSlug, docSlug)) ?? null;
 }
 
 export function getModuleBySlug(moduleSlug: string): DocModule | null {
@@ -113,17 +101,28 @@ export function getAdjacentDocs(
 }
 
 export function getSearchIndex(): SearchIndexItem[] {
-  return getDocModules().flatMap((module) =>
-    module.docs.map((doc) => {
-      const detail = getDocBySlug(module.slug, doc.slug);
+  return getDocsStore().searchIndex;
+}
 
-      return {
-        ...doc,
-        moduleTitle: module.title,
-        content: normalizeMarkdownForSearch(detail?.content ?? ""),
-      };
-    }),
-  );
+export function getDocPageData(
+  moduleSlug: string,
+  docSlug: string,
+): DocPageData | null {
+  const modules = getDocModules();
+  const activeModule = getModuleBySlug(moduleSlug);
+  const doc = getDocBySlug(moduleSlug, docSlug);
+
+  if (!activeModule || !doc) {
+    return null;
+  }
+
+  return {
+    activeModule,
+    adjacentDocs: getAdjacentDocs(moduleSlug, docSlug),
+    doc,
+    modules,
+    searchIndex: getSearchIndex(),
+  };
 }
 
 export function stripFirstHeading(content: string): string {
@@ -142,7 +141,67 @@ export function createHeadingSlugger() {
   };
 }
 
-function buildModule(moduleSlug: string): DocModule {
+function getDocsStore(): DocsStore {
+  if (process.env.NODE_ENV !== "production") {
+    return buildDocsStore();
+  }
+
+  if (docsStore) {
+    return docsStore;
+  }
+
+  docsStore = buildDocsStore();
+
+  return docsStore;
+}
+
+function buildDocsStore(): DocsStore {
+  if (!fs.existsSync(DOCS_DIR)) {
+    return {
+      details: new Map(),
+      modules: [],
+      params: [],
+      searchIndex: [],
+    };
+  }
+
+  const details = new Map<string, DocDetail>();
+  const modules = fs
+    .readdirSync(DOCS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => buildModule(entry.name, details))
+    .filter((module) => module.docs.length > 0)
+    .sort((a, b) => a.slug.localeCompare(b.slug));
+  const params = modules.flatMap((module) =>
+    module.docs.map((doc) => ({
+      module: module.slug,
+      slug: doc.slug,
+    })),
+  );
+  const searchIndex = modules.flatMap((module) =>
+    module.docs.map((doc) => {
+      const detail = details.get(createDocKey(module.slug, doc.slug));
+
+      return {
+        ...doc,
+        moduleTitle: module.title,
+        content: normalizeMarkdownForSearch(detail?.content ?? ""),
+      };
+    }),
+  );
+
+  return {
+    details,
+    modules,
+    params,
+    searchIndex,
+  };
+}
+
+function buildModule(
+  moduleSlug: string,
+  details: Map<string, DocDetail>,
+): DocModule {
   const moduleDir = path.join(DOCS_DIR, moduleSlug);
   const docs = fs
     .readdirSync(moduleDir, { withFileTypes: true })
@@ -150,12 +209,22 @@ function buildModule(moduleSlug: string): DocModule {
     .map((entry) => {
       const slug = entry.name.replace(/\.md$/, "");
       const content = fs.readFileSync(path.join(moduleDir, entry.name), "utf8");
-
-      return {
+      const detail = {
         module: moduleSlug,
         slug,
         title: extractTitle(content, slug),
         href: `/${moduleSlug}/${slug}`,
+        content,
+        tableOfContents: extractTableOfContents(content),
+      } satisfies DocDetail;
+
+      details.set(createDocKey(moduleSlug, slug), detail);
+
+      return {
+        module: detail.module,
+        slug: detail.slug,
+        title: detail.title,
+        href: detail.href,
       };
     })
     .sort((a, b) => a.title.localeCompare(b.title, "zh-CN"));
@@ -165,6 +234,10 @@ function buildModule(moduleSlug: string): DocModule {
     title: moduleTitleMap[moduleSlug] ?? toTitleCase(moduleSlug),
     docs,
   };
+}
+
+function createDocKey(moduleSlug: string, docSlug: string): string {
+  return `${moduleSlug}/${docSlug}`;
 }
 
 function extractTitle(content: string, fallback: string): string {
@@ -227,10 +300,4 @@ function toTitleCase(value: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function isPathInsideDocs(filePath: string): boolean {
-  const relativePath = path.relative(DOCS_DIR, filePath);
-
-  return Boolean(relativePath) && !relativePath.startsWith("..");
 }
