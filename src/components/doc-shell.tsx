@@ -5,6 +5,7 @@ import type { SearchIndexItem } from "@/lib/docs";
 
 import { MobileNav } from "./mobile-nav";
 import { SearchPanel } from "./search-panel";
+import { SidebarScrollArea } from "./sidebar-scroll-area";
 import { TableOfContents } from "./table-of-contents";
 
 type DocShellProps = {
@@ -32,7 +33,7 @@ export function DocShell({
         modules={modules}
         searchIndex={searchIndex}
       />
-      <aside className="sidebar" aria-label="文档导航">
+      <SidebarScrollArea>
         <div className="brand">
           <span>Source Notes</span>
           <strong>源码学习文档</strong>
@@ -43,7 +44,7 @@ export function DocShell({
           activeSlug={activeSlug}
           modules={modules}
         />
-      </aside>
+      </SidebarScrollArea>
       <main className="content">{children}</main>
       <TableOfContents items={tableOfContents} />
     </div>

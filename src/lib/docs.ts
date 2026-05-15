@@ -30,6 +30,11 @@ export type SearchIndexItem = DocSummary & {
   content: string;
 };
 
+export type AdjacentDocs = {
+  previous: DocSummary | null;
+  next: DocSummary | null;
+};
+
 const DOCS_DIR = path.join(process.cwd(), "docs");
 
 const moduleTitleMap: Record<string, string> = {
@@ -87,6 +92,24 @@ export function getDocBySlug(
 
 export function getModuleBySlug(moduleSlug: string): DocModule | null {
   return getDocModules().find((module) => module.slug === moduleSlug) ?? null;
+}
+
+export function getAdjacentDocs(
+  moduleSlug: string,
+  docSlug: string,
+): AdjacentDocs {
+  const module = getModuleBySlug(moduleSlug);
+  const currentIndex =
+    module?.docs.findIndex((doc) => doc.slug === docSlug) ?? -1;
+
+  if (!module || currentIndex < 0) {
+    return { previous: null, next: null };
+  }
+
+  return {
+    previous: module.docs[currentIndex - 1] ?? null,
+    next: module.docs[currentIndex + 1] ?? null,
+  };
 }
 
 export function getSearchIndex(): SearchIndexItem[] {

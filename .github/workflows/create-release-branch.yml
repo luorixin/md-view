@@ -1,0 +1,44 @@
+name: Create Release Branch
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release branch name
+        id: branch
+        run: |
+          COMMIT_STAMP=$(git show -s --date=format:'%Y%m%d-%H%M' --format=%cd HEAD)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "name=release/${COMMIT_STAMP}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release branch if missing
+        run: |
+          RELEASE_BRANCH="${{ steps.branch.outputs.name }}"
+          if git ls-remote --exit-code --heads origin "$RELEASE_BRANCH" >/dev/null 2>&1; then
+            echo "Branch already exists: $RELEASE_BRANCH"
+          else
+            git push origin HEAD:refs/heads/"$RELEASE_BRANCH"
+          fi
+
+      - name: Publish summary
+        run: |
+          echo "Created or confirmed release branch: \`${{ steps.branch.outputs.name }}\`" >> "$GITHUB_STEP_SUMMARY"

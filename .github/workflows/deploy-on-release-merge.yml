@@ -1,0 +1,85 @@
+name: Deploy After Release Merge
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Prepare SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+            chmod 644 ~/.ssh/known_hosts
+          fi
+
+      - name: Deploy to server
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            SSH_OPTIONS="-o StrictHostKeyChecking=yes"
+          else
+            SSH_OPTIONS="-o StrictHostKeyChecking=no"
+          fi
+
+          ssh \
+            -i ~/.ssh/id_rsa \
+            $SSH_OPTIONS \
+            -p "${SSH_PORT:-22}" \
+            "${SSH_USER}@${SSH_HOST}" <<EOF
+          set -e
+          cd "${DEPLOY_PATH}"
+          HEALTH_URL="${HEALTHCHECK_URL:-http://127.0.0.1:3000/api/health}"
+          BACKUP_ROOT=".deploy-backups"
+          BACKUP_STAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_DIR="${BACKUP_ROOT}/${BACKUP_STAMP}"
+          mkdir -p "${BACKUP_DIR}"
+          git rev-parse HEAD > "${BACKUP_DIR}/pre-deploy-revision.txt" || true
+          cp docker-compose.yml "${BACKUP_DIR}/docker-compose.yml" || true
+          docker compose config > "${BACKUP_DIR}/compose.rendered.yml" || true
+          curl -fsS "${HEALTH_URL}" > "${BACKUP_DIR}/pre-deploy-health.json" || true
+          git fetch --all --prune
+          git checkout main
+          git pull origin main
+          docker compose up -d --build
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS "${HEALTH_URL}" > "${BACKUP_DIR}/post-deploy-health.json"; then
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "Post-deploy health check failed: ${HEALTH_URL}"
+          exit 1
+          EOF
+
+      - name: Publish summary
+        run: |
+          echo "Deployed merged branch \`${{ github.event.pull_request.head.ref }}\` to production." >> "$GITHUB_STEP_SUMMARY"

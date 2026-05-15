@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { AdjacentDocNav } from "@/components/adjacent-doc-nav";
 import { DocShell } from "@/components/doc-shell";
 import { MarkdownContent } from "@/components/markdown-content";
 import {
+  getAdjacentDocs,
   getAllDocParams,
   getDocBySlug,
   getDocModules,
@@ -61,6 +63,7 @@ export default async function DocPage({ params }: DocPageProps) {
           <h1>{doc.title}</h1>
         </header>
         <MarkdownContent content={stripFirstHeading(doc.content)} />
+        <AdjacentDocNav adjacentDocs={getAdjacentDocs(module, slug)} />
       </article>
     </DocShell>
   );

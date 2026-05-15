@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getAllDocParams, getDocModules } from "../src/lib/docs";
+import {
+  getAdjacentDocs,
+  getAllDocParams,
+  getDocModules,
+} from "../src/lib/docs";
 
 test("builds modules from top-level docs folders and ignores non-markdown files", () => {
   const modules = getDocModules();
@@ -40,4 +44,33 @@ test("generates static route params for every markdown document", () => {
     ),
     { module: "vue", slug: "vue3-source-guide" },
   );
+});
+
+test("finds previous and next documents inside the same module", () => {
+  const reactModule = getDocModules().find((module) => module.slug === "react");
+  assert.ok(reactModule);
+
+  const middleDoc = reactModule.docs[1];
+  const adjacent = getAdjacentDocs("react", middleDoc.slug);
+
+  assert.equal(adjacent.previous?.slug, reactModule.docs[0].slug);
+  assert.equal(adjacent.next?.slug, reactModule.docs[2].slug);
+});
+
+test("returns empty adjacent slots for missing or edge documents", () => {
+  const reactModule = getDocModules().find((module) => module.slug === "react");
+  assert.ok(reactModule);
+
+  const firstAdjacent = getAdjacentDocs("react", reactModule.docs[0].slug);
+  const lastAdjacent = getAdjacentDocs(
+    "react",
+    reactModule.docs[reactModule.docs.length - 1].slug,
+  );
+  const missingAdjacent = getAdjacentDocs("react", "missing-doc");
+
+  assert.equal(firstAdjacent.previous, null);
+  assert.equal(firstAdjacent.next?.slug, reactModule.docs[1].slug);
+  assert.equal(lastAdjacent.previous?.slug, reactModule.docs.at(-2)?.slug);
+  assert.equal(lastAdjacent.next, null);
+  assert.deepEqual(missingAdjacent, { previous: null, next: null });
 });

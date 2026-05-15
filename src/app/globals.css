@@ -252,6 +252,46 @@ mark {
   line-height: 1.82;
 }
 
+.adjacent-doc-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 56px;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+
+.adjacent-doc {
+  display: grid;
+  gap: 8px;
+  min-height: 112px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 18px;
+  text-decoration: none;
+}
+
+.adjacent-doc:hover {
+  background: var(--panel-muted);
+}
+
+.adjacent-doc span {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.adjacent-doc strong {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.adjacent-doc.next {
+  text-align: right;
+}
+
 .markdown-body h2 {
   margin: 48px 0 16px;
   border-top: 1px solid var(--border);
@@ -638,6 +678,16 @@ mark {
     margin-top: 36px;
     padding-top: 24px;
     font-size: 1.45rem;
+  }
+
+  .adjacent-doc-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .adjacent-doc,
+  .adjacent-doc.next {
+    min-height: auto;
+    text-align: left;
   }
 
   .search-page-form {

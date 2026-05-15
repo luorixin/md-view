@@ -1,0 +1,72 @@
+name: Create Release PR
+
+on:
+  push:
+    branches:
+      - "release/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check branch diff against main
+        id: diff
+        run: |
+          git fetch origin main
+          AHEAD_COUNT=$(git rev-list --count origin/main..HEAD)
+          echo "ahead_count=${AHEAD_COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Create draft PR if needed
+        if: steps.diff.outputs.ahead_count != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("node:fs");
+            const branch = context.ref.replace("refs/heads/", "");
+            const existing = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              base: "main",
+              state: "open",
+            });
+
+            if (existing.data.length > 0) {
+              core.summary.addRaw(`PR already exists for ${branch}`).write();
+              return;
+            }
+
+            const template = fs.readFileSync(
+              ".github/PULL_REQUEST_TEMPLATE/release.md",
+              "utf8",
+            );
+
+            const releaseName = branch.replace(/^release\//, "");
+            const response = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: branch,
+              base: "main",
+              title: `Release: ${releaseName}`,
+              body: template,
+              draft: true,
+            });
+
+            core.summary
+              .addRaw(`Created draft PR #${response.data.number} for ${branch}`)
+              .write();
+
+      - name: Skip empty release branch PR
+        if: steps.diff.outputs.ahead_count == '0'
+        run: |
+          echo "Release branch matches main; skipping draft PR creation." >> "$GITHUB_STEP_SUMMARY"
