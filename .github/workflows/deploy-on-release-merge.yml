@@ -50,14 +50,29 @@ jobs:
             SSH_OPTIONS="-o StrictHostKeyChecking=no"
           fi
 
+          if [ -z "$DEPLOY_PATH" ]; then
+            echo "DEPLOY_PATH secret is not set"
+            exit 1
+          fi
+
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_USER" ]; then
+            echo "SSH_HOST or SSH_USER secret is not set"
+            exit 1
+          fi
+
+          HEALTH_URL="${HEALTHCHECK_URL:-http://127.0.0.1:3000/api/health}"
+
           ssh \
             -i ~/.ssh/id_rsa \
             $SSH_OPTIONS \
             -p "${SSH_PORT:-22}" \
-            "${SSH_USER}@${SSH_HOST}" <<EOF
+            "${SSH_USER}@${SSH_HOST}" \
+            "bash -s" -- "$DEPLOY_PATH" "$HEALTH_URL" <<'EOF'
           set -e
+          DEPLOY_PATH="$1"
+          HEALTH_URL="$2"
+
           cd "${DEPLOY_PATH}"
-          HEALTH_URL="${HEALTHCHECK_URL:-http://127.0.0.1:3000/api/health}"
           BACKUP_ROOT=".deploy-backups"
           BACKUP_STAMP=$(date +%Y%m%d-%H%M%S)
           BACKUP_DIR="${BACKUP_ROOT}/${BACKUP_STAMP}"
