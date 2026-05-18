@@ -78,6 +78,13 @@ docker run -d --name md-server --restart unless-stopped -p 3000:3000 md-server:l
   可选，服务器 `known_hosts` 内容；配置后会启用严格主机校验
 - `HEALTHCHECK_URL`
   可选，默认 `http://127.0.0.1:3000/api/health`
+- `RELEASE_PR_TOKEN`
+  可选但强烈建议配置。用于创建 release PR 的 GitHub Token；当仓库关闭 “Allow GitHub Actions to create and approve pull requests” 时，需要提供这个 secret。建议使用具备 `contents: write` 和 `pull requests: write` 权限的 Fine-grained PAT。
+
+### 需要确认的 GitHub Actions 仓库设置
+
+- 如果不配置 `RELEASE_PR_TOKEN`，需要在仓库 `Settings -> Actions -> General` 中开启 `Allow GitHub Actions to create and approve pull requests`
+- 如果该选项不能开启，或组织策略禁止使用默认 `GITHUB_TOKEN` 创建 PR，就配置 `RELEASE_PR_TOKEN` 作为替代
 
 ### 服务器目录要求
 
@@ -100,3 +107,5 @@ git pull origin main
 docker compose up -d --build
 curl -fsS http://127.0.0.1:3000/api/health
 ```
+
+工作流里的远程部署脚本通过 SSH 参数显式传入 `DEPLOY_PATH` 和 `HEALTHCHECK_URL`，避免 here-document 在 GitHub Runner 本地提前展开变量。若这两个值为空，工作流会在连接服务器前直接失败并给出提示。
