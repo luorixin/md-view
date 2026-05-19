@@ -44,13 +44,18 @@ export function CodeBlock({
     <div className="code-block">
       <div className="code-block-toolbar">
         <span>{language}</span>
-        <button type="button" onClick={handleCopy}>
-          {copyState === "copied"
-            ? "已复制"
-            : copyState === "error"
-              ? "复制失败"
-              : "复制代码"}
-        </button>
+        <div className="code-block-actions">
+          <span aria-live="polite" className="copy-status">
+            {copyState === "copied"
+              ? "已复制"
+              : copyState === "error"
+                ? "复制失败"
+                : ""}
+          </span>
+          <button type="button" onClick={handleCopy}>
+            复制代码
+          </button>
+        </div>
       </div>
       <pre>
         <code

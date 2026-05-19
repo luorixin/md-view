@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-import type { DocModule, SearchIndexItem } from "@/lib/docs";
+import type { DocModule, SearchIndexItem, TableOfContentsItem } from "@/lib/docs";
 import { SearchPanel } from "./search-panel";
 
 type MobileNavProps = {
@@ -12,6 +12,7 @@ type MobileNavProps = {
   activeSlug: string;
   modules: DocModule[];
   searchIndex: SearchIndexItem[];
+  tableOfContents: TableOfContentsItem[];
 };
 
 export function MobileNav({
@@ -19,6 +20,7 @@ export function MobileNav({
   activeSlug,
   modules,
   searchIndex,
+  tableOfContents,
 }: MobileNavProps) {
   const pathname = usePathname();
   const detailsRef = useRef<HTMLDetailsElement>(null);
@@ -60,6 +62,21 @@ export function MobileNav({
             onNavigate={closeMenu}
             searchIndex={searchIndex}
           />
+          {tableOfContents.length > 0 ? (
+            <details className="mobile-toc">
+              <summary>本页目录</summary>
+              <ol>
+                {tableOfContents.map((item) => (
+                  <li
+                    className={item.level === 3 ? "nested" : undefined}
+                    key={item.id}
+                  >
+                    <a href={`#${item.id}`}>{item.text}</a>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
           <nav className="doc-nav">
             {modules.map((module) => (
               <section className="nav-module" key={module.slug}>

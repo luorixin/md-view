@@ -45,11 +45,6 @@ export type DocPageData = {
 
 const DOCS_DIR = path.join(process.cwd(), "docs");
 
-const moduleTitleMap: Record<string, string> = {
-  react: "React",
-  vue: "Vue",
-};
-
 type DocsStore = {
   details: Map<string, DocDetail>;
   modules: DocModule[];
@@ -168,7 +163,7 @@ function buildDocsStore(): DocsStore {
   const details = new Map<string, DocDetail>();
   const modules = fs
     .readdirSync(DOCS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
     .map((entry) => buildModule(entry.name, details))
     .filter((module) => module.docs.length > 0)
     .sort((a, b) => a.slug.localeCompare(b.slug));
@@ -231,7 +226,7 @@ function buildModule(
 
   return {
     slug: moduleSlug,
-    title: moduleTitleMap[moduleSlug] ?? toTitleCase(moduleSlug),
+    title: toTitleCase(moduleSlug),
     docs,
   };
 }

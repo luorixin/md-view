@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import type { DocModule, TableOfContentsItem } from "@/lib/docs";
-import type { SearchIndexItem } from "@/lib/docs";
+import type { DocModule, SearchIndexItem, TableOfContentsItem } from "@/lib/docs";
 
 import { MobileNav } from "./mobile-nav";
 import { SearchPanel } from "./search-panel";
@@ -32,13 +31,14 @@ export function DocShell({
         activeSlug={activeSlug}
         modules={modules}
         searchIndex={searchIndex}
+        tableOfContents={tableOfContents}
       />
       <SidebarScrollArea>
         <div className="brand">
           <span>Source Notes</span>
           <strong>源码学习文档</strong>
         </div>
-        <SearchPanel modules={modules} searchIndex={searchIndex} />
+        <SearchPanel enableShortcuts modules={modules} searchIndex={searchIndex} />
         <DocNav
           activeModule={activeModule}
           activeSlug={activeSlug}

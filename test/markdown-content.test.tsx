@@ -12,6 +12,7 @@ test("renders anchor links for section headings", () => {
 
   assert.match(html, /id="intro-section"/);
   assert.match(html, /href="#intro-section"/);
+  assert.match(html, /heading-anchor/);
   assert.match(html, /Intro Section/);
 });
 
@@ -22,5 +23,6 @@ test("renders code block toolbar controls for fenced code blocks", () => {
 
   assert.match(html, /code-block/);
   assert.match(html, /复制代码/);
+  assert.match(html, /aria-live="polite"/);
   assert.match(html, /ts/);
 });

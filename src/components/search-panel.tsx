@@ -13,18 +13,21 @@ import {
 import type { DocModule, SearchIndexItem } from "@/lib/docs";
 import {
   getSearchPageHref,
-  highlightSearchText,
   normalizeQuery,
   searchDocs,
 } from "@/lib/search";
 
+import { SearchResults } from "./search-results";
+
 type SearchPanelProps = {
+  enableShortcuts?: boolean;
   modules: DocModule[];
   onNavigate?: () => void;
   searchIndex: SearchIndexItem[];
 };
 
 export function SearchPanel({
+  enableShortcuts = false,
   modules,
   onNavigate,
   searchIndex,
@@ -48,6 +51,10 @@ export function SearchPanel({
   });
 
   useEffect(() => {
+    if (!enableShortcuts) {
+      return;
+    }
+
     function handleKeydown(event: KeyboardEvent) {
       const target = event.target;
       const isTypingTarget =
@@ -78,7 +85,7 @@ export function SearchPanel({
     return () => {
       window.removeEventListener("keydown", handleKeydown);
     };
-  }, [focusSearchInput]);
+  }, [enableShortcuts, focusSearchInput]);
 
   return (
     <section className="search-panel" aria-label="全文搜索">
@@ -87,7 +94,7 @@ export function SearchPanel({
         id={inputId}
         ref={inputRef}
         name="q"
-        placeholder="搜索 Fiber、hydration、scheduler..."
+        placeholder="搜索源码、组件、scheduler..."
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
@@ -107,40 +114,23 @@ export function SearchPanel({
           ))}
         </select>
         <span aria-live="polite">
-          {hasQuery ? `${results.length} 个结果` : "按 / 或 Ctrl/Cmd + K 搜索"}
+          {hasQuery
+            ? `${results.length} 个结果`
+            : enableShortcuts
+              ? "按 / 或 Ctrl/Cmd + K 搜索"
+              : "输入关键词"}
         </span>
       </div>
       <Link className="search-open" href={searchHref} onClick={onNavigate}>
         打开搜索页
       </Link>
       {hasQuery ? (
-        <div className="search-results">
-          {results.length > 0 ? (
-            results.map((result) => (
-              <Link
-                className="search-result"
-                href={result.href}
-                key={result.href}
-                onClick={onNavigate}
-              >
-                <span>{result.moduleTitle}</span>
-                <strong
-                  dangerouslySetInnerHTML={{
-                    __html: highlightSearchText(result.title, terms),
-                  }}
-                />
-                <p
-                  dangerouslySetInnerHTML={{
-                    __html: highlightSearchText(result.snippet, terms),
-                  }}
-                />
-                <small>{result.matches.join(" · ")}</small>
-              </Link>
-            ))
-          ) : (
-            <p className="search-empty">没有找到匹配文档</p>
-          )}
-        </div>
+        <SearchResults
+          onNavigate={onNavigate}
+          results={results}
+          terms={terms}
+          variant="compact"
+        />
       ) : null}
     </section>
   );
