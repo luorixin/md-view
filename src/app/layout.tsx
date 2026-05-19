@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "源码学习文档",
-  description: "React 与 Vue 源码学习文档站",
+  description: "本地 Markdown 源码学习文档站",
 };
 
 export default function RootLayout({

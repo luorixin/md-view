@@ -1,15 +1,23 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import { getSearchIndex } from "../src/lib/docs";
 import { getSearchPageHref, normalizeQuery, searchDocs } from "../src/lib/search";
 
+const DOCS_DIR = path.join(process.cwd(), "docs");
+
 test("builds a full-text search index from every markdown document", () => {
   const index = getSearchIndex();
 
-  assert.equal(index.length, 51);
+  assert.equal(index.length, getExpectedMarkdownTotal());
   assert.equal(
     index.some((item) => item.href === "/react/react-source-overview"),
+    true,
+  );
+  assert.equal(
+    index.some((item) => item.href === "/element-plus/element-plus-button-source"),
     true,
   );
   assert.equal(index.some((item) => item.content.includes("# ")), false);
@@ -59,3 +67,17 @@ test("builds shareable search result urls", () => {
   );
   assert.equal(getSearchPageHref({ query: "hydration", module: "all" }), "/search?q=hydration");
 });
+
+function getExpectedMarkdownTotal(): number {
+  return fs
+    .readdirSync(DOCS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+    .reduce((total, entry) => {
+      const markdownCount = fs
+        .readdirSync(path.join(DOCS_DIR, entry.name), { withFileTypes: true })
+        .filter((docEntry) => docEntry.isFile() && docEntry.name.endsWith(".md"))
+        .length;
+
+      return total + markdownCount;
+    }, 0);
+}

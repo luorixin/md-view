@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import {
@@ -8,15 +10,21 @@ import {
   getDocModules,
 } from "../src/lib/docs";
 
+const DOCS_DIR = path.join(process.cwd(), "docs");
+
 test("builds modules from top-level docs folders and ignores non-markdown files", () => {
   const modules = getDocModules();
   const moduleSlugs = modules.map((module) => module.slug);
 
-  assert.deepEqual(moduleSlugs, ["react", "vue"]);
-  assert.equal(modules[0].docs.length, 22);
-  assert.equal(modules[1].docs.length, 29);
+  assert.deepEqual(moduleSlugs, getExpectedModuleSlugs());
+  assert.deepEqual(
+    modules.map((module) => module.docs.length),
+    moduleSlugs.map((moduleSlug) => getMarkdownCount(moduleSlug)),
+  );
   assert.equal(
-    modules[0].docs.some((doc) => doc.slug === ".DS_Store"),
+    modules.some((module) =>
+      module.docs.some((doc) => doc.slug === ".DS_Store"),
+    ),
     false,
   );
 });
@@ -32,18 +40,34 @@ test("extracts readable document metadata from markdown content", () => {
     reactOverview?.href,
     "/react/react-source-overview",
   );
+
+  const elementPlusModule = modules.find((module) => module.slug === "element-plus");
+  const buttonDoc = elementPlusModule?.docs.find(
+    (doc) => doc.slug === "element-plus-button-source",
+  );
+
+  assert.equal(elementPlusModule?.title, "Element Plus");
+  assert.equal(buttonDoc?.href, "/element-plus/element-plus-button-source");
 });
 
 test("generates static route params for every markdown document", () => {
   const params = getAllDocParams();
 
-  assert.equal(params.length, 51);
+  assert.equal(params.length, getExpectedMarkdownTotal());
   assert.deepEqual(
     params.find(
       (param) =>
         param.module === "vue" && param.slug === "vue3-source-guide",
     ),
     { module: "vue", slug: "vue3-source-guide" },
+  );
+  assert.deepEqual(
+    params.find(
+      (param) =>
+        param.module === "element-plus" &&
+        param.slug === "element-plus-button-source",
+    ),
+    { module: "element-plus", slug: "element-plus-button-source" },
   );
 });
 
@@ -86,7 +110,30 @@ test("builds all document page data in one read model", () => {
   assert.ok(pageData);
   assert.equal(pageData.activeModule.slug, "react");
   assert.equal(pageData.doc.slug, doc.slug);
-  assert.equal(pageData.modules.length, 2);
-  assert.equal(pageData.searchIndex.length, 51);
+  assert.equal(pageData.modules.length, getExpectedModuleSlugs().length);
+  assert.equal(pageData.searchIndex.length, getExpectedMarkdownTotal());
   assert.equal(pageData.adjacentDocs.previous?.slug, reactModule.docs[0].slug);
 });
+
+function getExpectedModuleSlugs(): string[] {
+  return fs
+    .readdirSync(DOCS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+    .map((entry) => entry.name)
+    .filter((moduleSlug) => getMarkdownCount(moduleSlug) > 0)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function getExpectedMarkdownTotal(): number {
+  return getExpectedModuleSlugs().reduce(
+    (total, moduleSlug) => total + getMarkdownCount(moduleSlug),
+    0,
+  );
+}
+
+function getMarkdownCount(moduleSlug: string): number {
+  return fs
+    .readdirSync(path.join(DOCS_DIR, moduleSlug), { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    .length;
+}
