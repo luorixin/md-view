@@ -1,11 +1,15 @@
 .DS_Store
 .git
+.github
 .next
 .omx
+.release
 Dockerfile
 README.md
 docker-compose*.yml
 node_modules
 npm-debug.log*
 pnpm-debug.log*
+test
 *.log
+~
