@@ -6,6 +6,15 @@
 docker compose up -d --build
 ```
 
+如果服务器网络较慢或首次构建依赖下载时间较长，可以先单独构建并打开详细日志：
+
+```bash
+docker compose build --progress=plain
+docker compose up -d
+```
+
+若仍出现 `context deadline exceeded`，优先检查 Docker 服务状态、服务器磁盘空间和网络连通性。本项目 Dockerfile 不依赖外部 Dockerfile frontend，避免在构建开始时额外拉取 `docker/dockerfile:*`；依赖安装使用 `pnpm fetch` + `pnpm install --offline`，只要 `package.json` 和 `pnpm-lock.yaml` 不变，Docker 层缓存就能复用依赖下载结果。
+
 启动后访问：
 
 ```text

@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 FROM node:24-alpine AS base
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -9,12 +7,15 @@ ENV PATH=$PNPM_HOME:$PATH
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@10.27.0 --activate
+RUN corepack enable \
+  && corepack prepare pnpm@10.27.0 --activate \
+  && pnpm config set store-dir /pnpm/store
 
 FROM base AS deps
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm fetch --frozen-lockfile
+RUN pnpm install --frozen-lockfile --offline
 
 FROM base AS builder
 
